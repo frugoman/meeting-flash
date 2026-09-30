@@ -13,7 +13,7 @@ plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Inf
 
 for arch in arm64 x86_64; do
   swiftc -O -swift-version 5 -target $arch-apple-macosx14.0 \
-    -framework AppKit -framework EventKit -framework ServiceManagement \
+    -framework AppKit -framework EventKit -framework ServiceManagement -framework SwiftUI -framework CoreAudio \
     Sources/*.swift -o build/obj/MeetingFlash-$arch
 done
 lipo -create build/obj/MeetingFlash-* -output "$APP/Contents/MacOS/MeetingFlash"

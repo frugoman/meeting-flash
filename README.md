@@ -19,7 +19,8 @@ Requires macOS 14 Sonoma or later.
 ## Features
 
 - Red, click-through flash on every display, showing the meeting title
-- Choose when to flash: at start time, or 1–15 minutes before
+- Multiple alerts per meeting (at start, or 1–30 minutes before), each with its own flash and sound — e.g. a soft *Tink* at 5 min, flash + *Sosumi* at 1 min
+- Sounds only on the outputs you choose — pick your AirPods and alerts stay silent on the laptop speakers at the office
 - Pick which calendars to watch
 - Skips all-day, cancelled, declined, and (optionally) "Free" events
 - Countdown in the menu bar when the next meeting is less than an hour away

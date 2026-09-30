@@ -1,6 +1,7 @@
 import AppKit
 import EventKit
 import ServiceManagement
+import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -9,22 +10,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var tickTimer: Timer?
     private var hasAccess = false
-    /// Occurrences already flashed, keyed by event id + start time (recurring events share an id).
+    private var settingsWindow: NSWindow?
+    /// Alerts already fired, keyed by event id + start time + alert id (recurring events share an id).
     private var fired: [String: Date] = [:]
 
-    private let defaults = UserDefaults.standard
-    private var leadMinutes: Int {
-        get { defaults.object(forKey: "leadMinutes") as? Int ?? 1 }
-        set { defaults.set(newValue, forKey: "leadMinutes") }
-    }
-    private var ignoreFree: Bool {
-        get { defaults.object(forKey: "ignoreFree") as? Bool ?? true }
-        set { defaults.set(newValue, forKey: "ignoreFree") }
-    }
-    private var disabledCalendarIDs: Set<String> {
-        get { Set(defaults.stringArray(forKey: "disabledCalendars") ?? []) }
-        set { defaults.set(Array(newValue), forKey: "disabledCalendars") }
-    }
+    private let settings = AppSettings()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -59,13 +49,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func relevantEvents(from start: Date, to end: Date) -> [EKEvent] {
         guard hasAccess else { return [] }
-        let calendars = store.calendars(for: .event).filter { !disabledCalendarIDs.contains($0.calendarIdentifier) }
+        let calendars = store.calendars(for: .event).filter { !settings.disabledCalendarIDs.contains($0.calendarIdentifier) }
         guard !calendars.isEmpty else { return [] }
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: calendars)
         return store.events(matching: predicate)
             .filter { event in
                 if event.isAllDay || event.status == .canceled { return false }
-                if ignoreFree && event.availability == .free { return false }
+                if settings.ignoreFree && event.availability == .free { return false }
                 let me = event.attendees?.first(where: \.isCurrentUser)
                 if me?.participantStatus == .declined { return false }
                 return true
@@ -79,20 +69,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func tick() {
         let now = Date()
-        let lead = TimeInterval(leadMinutes * 60)
         let events = relevantEvents(from: now.addingTimeInterval(-3600), to: now.addingTimeInterval(24 * 3600))
+        settings.remember(AudioOutputs.all())
 
-        // Flash anything whose trigger time has passed and which hasn't been running for more than a minute.
         for event in events {
-            let trigger = event.startDate.addingTimeInterval(-lead)
-            guard now >= trigger, now < event.startDate.addingTimeInterval(60), fired[key(event)] == nil else { continue }
-            fired[key(event)] = now
-            flasher.flash(title: event.title ?? "Meeting", subtitle: Self.startsText(event.startDate, now: now))
+            // Only meetings that haven't been running for more than a minute.
+            guard now < event.startDate.addingTimeInterval(60) else { continue }
+            let due = settings.alerts.filter { now >= event.startDate.addingTimeInterval(-TimeInterval($0.minutesBefore * 60)) }
+            // If several are due (e.g. after wake), fire only the latest and mark the older ones as done.
+            guard let latest = due.min(by: { $0.minutesBefore < $1.minutesBefore }),
+                  fired[key(event) + latest.id.uuidString] == nil else { continue }
+            due.forEach { fired[key(event) + $0.id.uuidString] = now }
+            fire(latest, title: event.title ?? "Meeting", subtitle: Self.startsText(event.startDate, now: now))
             break
         }
         fired = fired.filter { now.timeIntervalSince($0.value) < 24 * 3600 }
 
         updateStatusTitle(events: events, now: now)
+    }
+
+    private func fire(_ alert: MeetingAlert, title: String, subtitle: String) {
+        if alert.flash { flasher.flash(title: title, subtitle: subtitle) }
+        if let sound = alert.sound, settings.soundAllowedOnCurrentOutput { Sounds.play(sound) }
     }
 
     private func updateStatusTitle(events: [EKEvent], now: Date) {
@@ -166,18 +164,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
-        // Lead time
-        let leadItem = NSMenuItem(title: "Flash Before Meeting", action: nil, keyEquivalent: "")
-        let leadMenu = NSMenu()
-        for mins in [0, 1, 2, 3, 5, 10, 15] {
-            let mi = item(mins == 0 ? "At start time" : "\(mins) min before", #selector(setLead(_:)))
-            mi.tag = mins
-            mi.state = mins == leadMinutes ? .on : .off
-            leadMenu.addItem(mi)
-        }
-        leadItem.submenu = leadMenu
-        menu.addItem(leadItem)
-
         // Calendars
         if hasAccess {
             let calItem = NSMenuItem(title: "Calendars", action: nil, keyEquivalent: "")
@@ -188,7 +174,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 for cal in bySource[source]!.sorted(by: { $0.title < $1.title }) {
                     let mi = item(cal.title, #selector(toggleCalendar(_:)))
                     mi.representedObject = cal.calendarIdentifier
-                    mi.state = disabledCalendarIDs.contains(cal.calendarIdentifier) ? .off : .on
+                    mi.state = settings.disabledCalendarIDs.contains(cal.calendarIdentifier) ? .off : .on
                     mi.image = Self.swatch(cal.color)
                     calMenu.addItem(mi)
                 }
@@ -198,7 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         let freeItem = item("Ignore Events Marked “Free”", #selector(toggleIgnoreFree))
-        freeItem.state = ignoreFree ? .on : .off
+        freeItem.state = settings.ignoreFree ? .on : .off
         menu.addItem(freeItem)
 
         let loginItem = item("Launch at Login", #selector(toggleLaunchAtLogin))
@@ -206,7 +192,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(loginItem)
 
         menu.addItem(.separator())
-        menu.addItem(item("Test Flash", #selector(testFlash), key: "t"))
+        menu.addItem(item("Settings…", #selector(openSettings), key: ","))
+        menu.addItem(item("Test Alert", #selector(testFlash), key: "t"))
         menu.addItem(item("Quit MeetingFlash", #selector(NSApplication.terminate(_:)), key: "q"))
     }
 
@@ -233,17 +220,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - Actions
 
-    @objc private func setLead(_ sender: NSMenuItem) { leadMinutes = sender.tag; tick() }
-
     @objc private func toggleCalendar(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
-        var set = disabledCalendarIDs
-        if set.contains(id) { set.remove(id) } else { set.insert(id) }
-        disabledCalendarIDs = set
+        if settings.disabledCalendarIDs.contains(id) {
+            settings.disabledCalendarIDs.remove(id)
+        } else {
+            settings.disabledCalendarIDs.insert(id)
+        }
         tick()
     }
 
-    @objc private func toggleIgnoreFree() { ignoreFree.toggle(); tick() }
+    @objc private func toggleIgnoreFree() { settings.ignoreFree.toggle(); tick() }
 
     @objc private func toggleLaunchAtLogin() {
         do {
@@ -260,10 +247,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    /// Fires the alert closest to the meeting start, exactly as a real one would (sound rules included).
     @objc private func testFlash() {
         let next = relevantEvents(from: Date(), to: Date().addingTimeInterval(24 * 3600)).first
-        flasher.flash(title: next?.title ?? "Test Meeting",
-                      subtitle: next.map { Self.startsText($0.startDate, now: Date()) } ?? "Starts in 1 minute")
+        let alert = settings.alerts.min(by: { $0.minutesBefore < $1.minutesBefore }) ?? MeetingAlert(minutesBefore: 1)
+        fire(alert, title: next?.title ?? "Test Meeting",
+             subtitle: next.map { Self.startsText($0.startDate, now: Date()) } ?? "Starts in 1 minute")
+    }
+
+    @objc private func openSettings() {
+        if settingsWindow == nil {
+            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(settings: settings)))
+            window.title = "MeetingFlash Settings"
+            window.styleMask = [.titled, .closable]
+            window.isReleasedWhenClosed = false
+            window.center()
+            settingsWindow = window
+        }
+        NSApp.activate()
+        settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
     @objc private func openJoinURL(_ sender: NSMenuItem) {
