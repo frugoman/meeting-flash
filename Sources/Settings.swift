@@ -139,18 +139,52 @@ final class AppSettings: ObservableObject {
 
 // MARK: - Sounds
 
+/// System sounds are stored by name ("Sosumi"); the user's own sounds by file name with extension ("Gong.mp3").
 @MainActor
 enum Sounds {
     static let names: [String] = ((try? FileManager.default.contentsOfDirectory(atPath: "/System/Library/Sounds")) ?? [])
         .map { ($0 as NSString).deletingPathExtension }
         .sorted()
 
+    /// Copies of sounds the user added, in Application Support.
+    static let customDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("MeetingFlash/Sounds", isDirectory: true)
+
+    static var customNames: [String] {
+        ((try? FileManager.default.contentsOfDirectory(atPath: customDirectory.path)) ?? [])
+            .filter { !$0.hasPrefix(".") }
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    /// Copies an audio file in (replacing one with the same name) and returns the name to store on the alert.
+    static func add(_ source: URL) throws -> String {
+        try FileManager.default.createDirectory(at: customDirectory, withIntermediateDirectories: true)
+        let copy = customDirectory.appendingPathComponent(source.lastPathComponent)
+        if FileManager.default.fileExists(atPath: copy.path) { try FileManager.default.removeItem(at: copy) }
+        try FileManager.default.copyItem(at: source, to: copy)
+        return source.lastPathComponent
+    }
+
+    static func displayName(_ name: String) -> String {
+        (name as NSString).deletingPathExtension
+    }
+
     private static var playing: NSSound?
 
     static func play(_ name: String) {
         playing?.stop()
-        playing = NSSound(named: NSSound.Name(name))
+        let custom = customDirectory.appendingPathComponent(name)
+        playing = FileManager.default.fileExists(atPath: custom.path)
+            ? NSSound(contentsOf: custom, byReference: true)
+            : NSSound(named: NSSound.Name(name))
         playing?.play()
+    }
+
+    static var isPlaying: Bool { playing?.isPlaying ?? false }
+
+    static func stop() {
+        playing?.stop()
+        playing = nil
     }
 }
 

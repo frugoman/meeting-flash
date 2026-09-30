@@ -244,9 +244,39 @@ struct SettingsView: View {
 
 private struct AlertRow: View {
     static let timings = [0, 1, 2, 3, 5, 10, 15, 30]
+    /// Picker tag for the "Add Sound…" item, which opens a file picker instead of being selected.
+    private static let addSoundTag = "\u{0}add-sound"
 
     @Binding var alert: MeetingAlert
     var onDelete: () -> Void
+
+    private var soundSelection: Binding<String?> {
+        Binding(
+            get: { alert.sound },
+            set: { value in
+                if value == Self.addSoundTag {
+                    if let added = Self.chooseSound() { alert.sound = added }
+                } else {
+                    alert.sound = value
+                }
+            })
+    }
+
+    /// Lets the user pick an audio file (MP3, M4A, WAV, AIFF…) and copies it into the app's sounds.
+    private static func chooseSound() -> String? {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.audio]
+        panel.message = "Choose a sound for this alert"
+        guard panel.runModal() == .OK, let url = panel.url else { return nil }
+        do {
+            let name = try Sounds.add(url)
+            Sounds.play(name)
+            return name
+        } catch {
+            NSAlert(error: error).runModal()
+            return nil
+        }
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -261,22 +291,29 @@ private struct AlertRow: View {
             Toggle("Flash", isOn: $alert.flash)
                 .toggleStyle(.checkbox)
 
-            Picker("Sound", selection: $alert.sound) {
+            Picker("Sound", selection: soundSelection) {
                 Text("No sound").tag(String?.none)
                 Divider()
+                let custom = Sounds.customNames
+                if !custom.isEmpty {
+                    ForEach(custom, id: \.self) { Text(Sounds.displayName($0)).tag(String?.some($0)) }
+                    Divider()
+                }
                 ForEach(Sounds.names, id: \.self) { Text($0).tag(String?.some($0)) }
+                Divider()
+                Text("Add Sound…").tag(String?.some(Self.addSoundTag))
             }
             .labelsHidden()
             .frame(width: 120)
 
             Button {
-                if let s = alert.sound { Sounds.play(s) }
+                if Sounds.isPlaying { Sounds.stop() } else if let s = alert.sound { Sounds.play(s) }
             } label: {
                 Image(systemName: "play.circle")
             }
             .buttonStyle(.borderless)
             .disabled(alert.sound == nil)
-            .help("Preview sound")
+            .help("Preview sound (click again to stop)")
 
             Spacer()
 

@@ -12,6 +12,8 @@ final class Flasher {
     private var windows: [NSWindow] = []
     /// Bumped on dismiss so pending pulse steps from that flash stop.
     private var generation = 0
+    /// Called when the user dismisses the flash.
+    var onDismiss: (() -> Void)?
 
     func flash(title: String?, subtitle: String?, look: FlashLook, pulses: Int = 3) {
         guard windows.isEmpty else { return } // already flashing
@@ -54,6 +56,7 @@ final class Flasher {
     func dismiss() {
         guard !windows.isEmpty else { return }
         generation += 1
+        onDismiss?()
         let closing = windows
         windows.removeAll()
         NSAnimationContext.runAnimationGroup({ ctx in

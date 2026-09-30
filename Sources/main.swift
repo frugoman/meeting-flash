@@ -17,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let settings = AppSettings()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // A long custom sound shouldn't keep playing once you've acknowledged the flash.
+        flasher.onDismiss = { Sounds.stop() }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.image = NSImage(systemSymbolName: "calendar.badge.clock", accessibilityDescription: "MeetingFlash")
         statusItem.button?.imagePosition = .imageLeading
