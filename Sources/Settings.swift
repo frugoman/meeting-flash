@@ -107,7 +107,49 @@ enum AudioOutputs {
 
     private static func output(_ id: AudioObjectID) -> AudioOutput? {
         guard let uid = string(id, kAudioDevicePropertyDeviceUID), let name = string(id, kAudioObjectPropertyName) else { return nil }
-        return AudioOutput(uid: uid, name: name)
+        return AudioOutput(uid: canonicalID(uid), name: name)
+    }
+
+    private static let macAddress = try! NSRegularExpression(pattern: "[0-9A-Fa-f]{2}([-:][0-9A-Fa-f]{2}){5}")
+
+    /// Bluetooth outputs are identified by their hardware address ("bt:340e22c3b28f"), so a device
+    /// found in the paired list matches the CoreAudio device once it connects.
+    static func canonicalID(_ raw: String) -> String {
+        guard let m = macAddress.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)),
+              let r = Range(m.range, in: raw) else { return raw }
+        return "bt:" + raw[r].filter(\.isHexDigit).lowercased()
+    }
+
+    /// Paired Bluetooth audio devices, connected or not. Reads system_profiler, which (unlike
+    /// IOBluetooth) doesn't need Bluetooth permission. Takes a second or so, so call off the main thread.
+    static func pairedBluetooth() -> [AudioOutput] {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
+        proc.arguments = ["SPBluetoothDataType", "-json"]
+        let pipe = Pipe()
+        proc.standardOutput = pipe
+        proc.standardError = FileHandle.nullDevice
+        guard (try? proc.run()) != nil else { return [] }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        proc.waitUntilExit()
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let controller = (json["SPBluetoothDataType"] as? [[String: Any]])?.first else { return [] }
+        let nonAudio: Set<String> = ["Keyboard", "Mouse", "Trackpad", "Pointing Device", "Gamepad", "Joystick",
+                                     "Game Controller", "Remote Control", "Digitizer Tablet", "Card Reader", "Combo"]
+        var result: [AudioOutput] = []
+        for section in ["device_connected", "device_not_connected"] {
+            for entry in controller[section] as? [[String: [String: Any]]] ?? [] {
+                for (name, info) in entry {
+                    // Phones, watches and computers have no minor type; everything else that isn't an input device may play audio.
+                    guard let minor = info["device_minorType"] as? String, !nonAudio.contains(minor),
+                          let address = info["device_address"] as? String else { continue }
+                    let clean = name.replacingOccurrences(of: " - Find My", with: "").trimmingCharacters(in: .whitespaces)
+                    result.append(AudioOutput(uid: canonicalID(address), name: clean))
+                }
+            }
+        }
+        return result
     }
 
     private static func hasOutput(_ id: AudioObjectID) -> Bool {

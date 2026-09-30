@@ -55,7 +55,7 @@ struct SettingsView: View {
             } header: {
                 Text("Sound Output")
             } footer: {
-                Text("E.g. pick only your AirPods so alerts stay silent on the laptop speakers at the office. The flash always shows.")
+                Text("E.g. pick only your AirPods so alerts stay silent on the laptop speakers at the office. Paired Bluetooth speakers and headphones show up even when they're not connected. The flash always shows.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -63,6 +63,11 @@ struct SettingsView: View {
         .frame(width: 520)
         .frame(minHeight: 420)
         .onAppear(perform: reloadOutputs)
+        .task {
+            let paired = await Task.detached { AudioOutputs.pairedBluetooth() }.value
+            // Don't let the paired-list name ("… - Find My") replace a name already learned from CoreAudio.
+            settings.remember(paired.filter { settings.knownOutputs[$0.uid] == nil })
+        }
         .onReceive(refresh) { _ in reloadOutputs() }
     }
 
