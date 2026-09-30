@@ -12,7 +12,7 @@ brew install --cask frugoman/tap/meeting-flash
 
 Then open **MeetingFlash** from Applications and allow calendar access.
 
-Or download the latest `.zip` from [Releases](https://github.com/frugoman/meeting-flash/releases), unzip it, and move `MeetingFlash.app` to Applications. Because the app isn't notarized, the first launch needs a right-click → **Open** (or **System Settings → Privacy & Security → Open Anyway**).
+Or download the latest `.zip` from [Releases](https://github.com/frugoman/homebrew-tap/releases?q=meeting-flash), unzip it, and move `MeetingFlash.app` to Applications. Because the app isn't notarized, the first launch needs a right-click → **Open** (or **System Settings → Privacy & Security → Open Anyway**).
 
 Requires macOS 14 Sonoma or later.
 
@@ -45,7 +45,7 @@ Needs Xcode or the Command Line Tools (Swift 5.9+).
 ./release.sh 1.1.0
 ```
 
-Builds a universal binary, creates a GitHub release, and updates the cask in [frugoman/homebrew-tap](https://github.com/frugoman/homebrew-tap).
+Builds a universal binary, publishes the zip as a release on, and updates the cask in, [frugoman/homebrew-tap](https://github.com/frugoman/homebrew-tap).
 
 ## License
 
