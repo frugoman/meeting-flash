@@ -1,8 +1,10 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
+    var previewFlash: () -> Void
     @State private var connected: [AudioOutput] = []
     @State private var current: AudioOutput?
     @State private var ssid: String?
@@ -29,6 +31,49 @@ struct SettingsView: View {
                 Text("Alerts")
             } footer: {
                 Text("If several alerts are due at once (say, right after your Mac wakes up), only the most recent one fires.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Picker("Show", selection: $settings.flashStyle) {
+                    Text("Colour").tag(FlashStyle.color)
+                    Text("Photo").tag(FlashStyle.photo)
+                }
+                .pickerStyle(.segmented)
+
+                if settings.flashStyle == .color {
+                    HStack {
+                        ColorPicker("Colour", selection: flashColor, supportsOpacity: true)
+                        if settings.flashColor != .defaultRed {
+                            Button("Reset to Red") { settings.flashColor = .defaultRed }
+                                .buttonStyle(.link)
+                        }
+                    }
+                } else {
+                    LabeledContent("Photo") {
+                        HStack {
+                            if let url = settings.flashPhoto, let image = NSImage(contentsOf: url) {
+                                Image(nsImage: image)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 48, height: 30)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                Text(settings.flashPhotoName ?? url.lastPathComponent)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            } else {
+                                Text("None — the colour is used").foregroundStyle(.secondary)
+                            }
+                            Button("Choose…", action: choosePhoto)
+                        }
+                    }
+                }
+
+                Button("Preview Flash", action: previewFlash)
+            } header: {
+                Text("Flash")
+            } footer: {
+                Text("The flash stays on screen until you click anywhere or press a key. Lower the colour's opacity to keep seeing what's underneath.")
                     .foregroundStyle(.secondary)
             }
 
@@ -123,6 +168,25 @@ struct SettingsView: View {
             .map { AudioOutput(uid: $0.key, name: $0.value) }
             .sorted { $0.name < $1.name }
         return connected + remembered
+    }
+
+    private var flashColor: Binding<Color> {
+        Binding(
+            get: { Color(nsColor: settings.flashColor.nsColor) },
+            set: { settings.flashColor = RGBA(NSColor($0)) })
+    }
+
+    private func choosePhoto() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.message = "Choose a photo to fill the screen before meetings"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try settings.setFlashPhoto(from: url)
+        } catch {
+            let alert = NSAlert(error: error)
+            alert.runModal()
+        }
     }
 
     private func allowed(_ uid: String) -> Binding<Bool> {

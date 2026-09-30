@@ -90,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func fire(_ alert: MeetingAlert, title: String, subtitle: String) {
-        if alert.flash { flasher.flash(title: title, subtitle: subtitle) }
+        if alert.flash { flasher.flash(title: title, subtitle: subtitle, look: settings.flashLook) }
         if let sound = alert.sound, settings.soundAllowedNow { Sounds.play(sound) }
     }
 
@@ -258,7 +258,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openSettings() {
         if settingsWindow == nil {
-            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(settings: settings)))
+            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(settings: settings) { [weak self] in
+                guard let self else { return }
+                flasher.flash(title: "Test Meeting", subtitle: "Starts in 1 minute", look: settings.flashLook)
+            }))
             window.title = "MeetingFlash Settings"
             window.styleMask = [.titled, .closable, .resizable]
             window.isReleasedWhenClosed = false

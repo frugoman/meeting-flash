@@ -9,11 +9,39 @@ struct MeetingAlert: Codable, Identifiable, Hashable {
     var sound: String? = nil
 }
 
+enum FlashStyle: String, Codable {
+    case color, photo
+}
+
+/// An sRGB colour with opacity, stored as plain numbers.
+struct RGBA: Codable, Equatable {
+    var red, green, blue, alpha: Double
+
+    static let defaultRed = RGBA(red: 1, green: 0.231, blue: 0.188, alpha: 0.55)
+
+    init(red: Double, green: Double, blue: Double, alpha: Double) {
+        (self.red, self.green, self.blue, self.alpha) = (red, green, blue, alpha)
+    }
+
+    init(_ color: NSColor) {
+        let c = color.usingColorSpace(.sRGB) ?? .systemRed
+        self.init(red: c.redComponent, green: c.greenComponent, blue: c.blueComponent, alpha: c.alphaComponent)
+    }
+
+    var nsColor: NSColor { NSColor(srgbRed: red, green: green, blue: blue, alpha: alpha) }
+}
+
 @MainActor
 final class AppSettings: ObservableObject {
     private let defaults = UserDefaults.standard
 
     @Published var alerts: [MeetingAlert] { didSet { save(alerts, "alerts") } }
+    @Published var flashStyle: FlashStyle { didSet { defaults.set(flashStyle.rawValue, forKey: "flashStyle") } }
+    @Published var flashColor: RGBA { didSet { save(flashColor, "flashColor") } }
+    /// Our own copy of the chosen photo, so the flash keeps working if the original moves.
+    @Published private(set) var flashPhoto: URL? { didSet { defaults.set(flashPhoto?.path, forKey: "flashPhoto") } }
+    /// File name of the photo as the user picked it, for display.
+    @Published private(set) var flashPhotoName: String? { didSet { defaults.set(flashPhotoName, forKey: "flashPhotoName") } }
     @Published var ignoreFree: Bool { didSet { defaults.set(ignoreFree, forKey: "ignoreFree") } }
     @Published var disabledCalendarIDs: Set<String> { didSet { defaults.set(Array(disabledCalendarIDs), forKey: "disabledCalendars") } }
     /// When on, sounds only play if the current output device is in `allowedOutputUIDs`.
@@ -34,6 +62,10 @@ final class AppSettings: ObservableObject {
             // Carry over the 1.0 single lead-time setting.
             self.alerts = [MeetingAlert(minutesBefore: defaults.object(forKey: "leadMinutes") as? Int ?? 1)]
         }
+        flashStyle = defaults.string(forKey: "flashStyle").flatMap(FlashStyle.init) ?? .color
+        flashColor = Self.load("flashColor") ?? .defaultRed
+        flashPhoto = defaults.string(forKey: "flashPhoto").map(URL.init(fileURLWithPath:))
+        flashPhotoName = defaults.string(forKey: "flashPhotoName")
         ignoreFree = defaults.object(forKey: "ignoreFree") as? Bool ?? true
         disabledCalendarIDs = Set(defaults.stringArray(forKey: "disabledCalendars") ?? [])
         restrictOutputs = defaults.bool(forKey: "restrictOutputs")
@@ -42,6 +74,28 @@ final class AppSettings: ObservableObject {
         outputNetworks = Self.load("outputNetworks") ?? [:]
         quietNetworks = Set(defaults.stringArray(forKey: "quietNetworks") ?? [])
         knownNetworks = Set(defaults.stringArray(forKey: "knownNetworks") ?? [])
+    }
+
+    /// What the flash shows right now. Falls back to the colour if the photo is missing or unreadable.
+    var flashLook: FlashLook {
+        if flashStyle == .photo, let flashPhoto, let image = NSImage(contentsOf: flashPhoto) {
+            return .photo(image)
+        }
+        return .color(flashColor.nsColor)
+    }
+
+    /// Copies the picked image into Application Support and uses it for the flash.
+    func setFlashPhoto(from source: URL) throws {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("MeetingFlash", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        // A new name each time, so the old copy can go and nothing caches a stale image.
+        let copy = dir.appendingPathComponent("flash-\(UUID().uuidString).\(source.pathExtension)")
+        try FileManager.default.copyItem(at: source, to: copy)
+        if let old = flashPhoto { try? FileManager.default.removeItem(at: old) }
+        flashPhoto = copy
+        flashPhotoName = source.lastPathComponent
+        flashStyle = .photo
     }
 
     func remember(networks: [String]) {

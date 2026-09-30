@@ -18,7 +18,8 @@ Requires macOS 14 Sonoma or later.
 
 ## Features
 
-- Red, click-through flash on every display, showing the meeting title
+- Full-screen flash on every display, showing the meeting title, that stays until you click anywhere or press a key
+- Flash in red (the default), any colour and opacity you like, or a photo of your choice
 - Multiple alerts per meeting (at start, or 1–30 minutes before), each with its own flash and sound — e.g. a soft *Tink* at 5 min, flash + *Sosumi* at 1 min
 - Sounds only on the outputs you choose — pick your AirPods and alerts stay silent on the laptop speakers at the office. Paired Bluetooth speakers and headphones are listed even when disconnected
 - Wi-Fi rules: never make sound on certain networks (e.g. the office), or allow an output only on some (e.g. MacBook speakers only at home). Reading the Wi-Fi name needs Location access — macOS requires it
