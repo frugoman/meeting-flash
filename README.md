@@ -21,6 +21,7 @@ Requires macOS 14 Sonoma or later.
 - Red, click-through flash on every display, showing the meeting title
 - Multiple alerts per meeting (at start, or 1–30 minutes before), each with its own flash and sound — e.g. a soft *Tink* at 5 min, flash + *Sosumi* at 1 min
 - Sounds only on the outputs you choose — pick your AirPods and alerts stay silent on the laptop speakers at the office. Paired Bluetooth speakers and headphones are listed even when disconnected
+- Wi-Fi rules: never make sound on certain networks (e.g. the office), or allow an output only on some (e.g. MacBook speakers only at home). Reading the Wi-Fi name needs Location access — macOS requires it
 - Pick which calendars to watch
 - Skips all-day, cancelled, declined, and (optionally) "Free" events
 - Countdown in the menu bar when the next meeting is less than an hour away

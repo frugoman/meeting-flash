@@ -12,6 +12,8 @@
 	<key>LSMinimumSystemVersion</key><string>14.0</string>
 	<key>LSUIElement</key><true/>
 	<key>NSCalendarsFullAccessUsageDescription</key><string>MeetingFlash reads your calendar so it can flash the screen before meetings start.</string>
+	<key>NSLocationUsageDescription</key><string>MeetingFlash uses Location access only to read your Wi-Fi network name, so it can keep alert sounds quiet on networks you choose.</string>
+	<key>NSLocationWhenInUseUsageDescription</key><string>MeetingFlash uses Location access only to read your Wi-Fi network name, so it can keep alert sounds quiet on networks you choose.</string>
 	<key>NSCalendarsUsageDescription</key><string>MeetingFlash reads your calendar so it can flash the screen before meetings start.</string>
 </dict>
 </plist>

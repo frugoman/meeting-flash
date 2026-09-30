@@ -71,6 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let now = Date()
         let events = relevantEvents(from: now.addingTimeInterval(-3600), to: now.addingTimeInterval(24 * 3600))
         settings.remember(AudioOutputs.all())
+        if let ssid = WiFi.shared.currentSSID { settings.remember(networks: [ssid]) }
 
         for event in events {
             // Only meetings that haven't been running for more than a minute.
@@ -90,7 +91,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func fire(_ alert: MeetingAlert, title: String, subtitle: String) {
         if alert.flash { flasher.flash(title: title, subtitle: subtitle) }
-        if let sound = alert.sound, settings.soundAllowedOnCurrentOutput { Sounds.play(sound) }
+        if let sound = alert.sound, settings.soundAllowedNow { Sounds.play(sound) }
     }
 
     private func updateStatusTitle(events: [EKEvent], now: Date) {
@@ -259,7 +260,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if settingsWindow == nil {
             let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(settings: settings)))
             window.title = "MeetingFlash Settings"
-            window.styleMask = [.titled, .closable]
+            window.styleMask = [.titled, .closable, .resizable]
             window.isReleasedWhenClosed = false
             window.center()
             settingsWindow = window

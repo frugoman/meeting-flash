@@ -21,6 +21,11 @@ final class AppSettings: ObservableObject {
     @Published var allowedOutputUIDs: Set<String> { didSet { defaults.set(Array(allowedOutputUIDs), forKey: "allowedOutputs") } }
     /// Every output device seen so far (UID → name), so AirPods can be picked while disconnected.
     @Published private(set) var knownOutputs: [String: String] { didSet { save(knownOutputs, "knownOutputs") } }
+    /// Per allowed output: Wi-Fi networks it may play on. Missing or empty means anywhere.
+    @Published var outputNetworks: [String: [String]] { didSet { save(outputNetworks, "outputNetworks") } }
+    /// Wi-Fi networks where alerts never make sound, whatever the output.
+    @Published var quietNetworks: Set<String> { didSet { defaults.set(Array(quietNetworks), forKey: "quietNetworks") } }
+    @Published private(set) var knownNetworks: Set<String> { didSet { defaults.set(Array(knownNetworks), forKey: "knownNetworks") } }
 
     init() {
         if let alerts: [MeetingAlert] = Self.load("alerts") {
@@ -34,6 +39,19 @@ final class AppSettings: ObservableObject {
         restrictOutputs = defaults.bool(forKey: "restrictOutputs")
         allowedOutputUIDs = Set(defaults.stringArray(forKey: "allowedOutputs") ?? [])
         knownOutputs = Self.load("knownOutputs") ?? [:]
+        outputNetworks = Self.load("outputNetworks") ?? [:]
+        quietNetworks = Set(defaults.stringArray(forKey: "quietNetworks") ?? [])
+        knownNetworks = Set(defaults.stringArray(forKey: "knownNetworks") ?? [])
+    }
+
+    func remember(networks: [String]) {
+        let new = Set(networks).subtracting(knownNetworks)
+        if !new.isEmpty { knownNetworks.formUnion(new) }
+    }
+
+    /// True when some rule depends on the Wi-Fi name (and so needs Location access).
+    var usesNetworkRules: Bool {
+        !quietNetworks.isEmpty || (restrictOutputs && outputNetworks.values.contains { !$0.isEmpty })
     }
 
     func remember(_ outputs: [AudioOutput]) {
@@ -42,13 +60,17 @@ final class AppSettings: ObservableObject {
         }
     }
 
-    /// Whether alert sounds may play right now, given the current output device.
-    var soundAllowedOnCurrentOutput: Bool {
+    /// Whether alert sounds may play right now, given the Wi-Fi network and current output device.
+    var soundAllowedNow: Bool {
+        let ssid = WiFi.shared.currentSSID
+        if let ssid, quietNetworks.contains(ssid) { return false }
         guard restrictOutputs else { return true }
         guard let current = AudioOutputs.current() else { return false }
-        if allowedOutputUIDs.contains(current.uid) { return true }
         // Some devices (USB, docks) get a new UID per port, so fall back to the name.
-        return allowedOutputUIDs.contains { knownOutputs[$0] == current.name }
+        guard let match = allowedOutputUIDs.first(where: { $0 == current.uid })
+                ?? allowedOutputUIDs.first(where: { knownOutputs[$0] == current.name }) else { return false }
+        let networks = outputNetworks[match] ?? []
+        return networks.isEmpty || (ssid.map(networks.contains) ?? false)
     }
 
     private func save<T: Encodable>(_ value: T, _ key: String) {

@@ -1,9 +1,12 @@
 import SwiftUI
+import AppKit
 
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
     @State private var connected: [AudioOutput] = []
     @State private var current: AudioOutput?
+    @State private var ssid: String?
+    @ObservedObject private var wifi = WiFi.shared
 
     private let refresh = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
@@ -33,14 +36,17 @@ struct SettingsView: View {
                 Toggle("Only play sounds on selected outputs", isOn: $settings.restrictOutputs)
                 if settings.restrictOutputs {
                     ForEach(outputList) { output in
-                        Toggle(isOn: allowed(output.uid)) {
-                            HStack {
-                                Text(output.name)
-                                if output.uid == current?.uid {
-                                    Text("current").font(.caption).foregroundStyle(.green)
-                                } else if !connected.contains(where: { $0.uid == output.uid }) {
-                                    Text("not connected").font(.caption).foregroundStyle(.secondary)
-                                }
+                        HStack {
+                            Toggle(output.name, isOn: allowed(output.uid))
+                                .toggleStyle(.checkbox)
+                            if output.uid == current?.uid {
+                                Text("current").font(.caption).foregroundStyle(.green)
+                            } else if !connected.contains(where: { $0.uid == output.uid }) {
+                                Text("not connected").font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if settings.allowedOutputUIDs.contains(output.uid) {
+                                outputNetworkMenu(output.uid)
                             }
                         }
                     }
@@ -48,20 +54,54 @@ struct SettingsView: View {
                 LabeledContent("Current output") {
                     HStack(spacing: 6) {
                         Text(current?.name ?? "Unknown")
-                        Image(systemName: settings.soundAllowedOnCurrentOutput ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                            .foregroundStyle(settings.soundAllowedOnCurrentOutput ? .green : .red)
+                        Image(systemName: settings.soundAllowedNow ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                            .foregroundStyle(settings.soundAllowedNow ? .green : .red)
+                            .help(settings.soundAllowedNow ? "An alert would play sound right now" : "Alerts are silent right now")
                     }
                 }
             } header: {
                 Text("Sound Output")
             } footer: {
-                Text("E.g. pick only your AirPods so alerts stay silent on the laptop speakers at the office. Paired Bluetooth speakers and headphones show up even when they're not connected. The flash always shows.")
+                Text("E.g. pick only your AirPods so alerts stay silent on the laptop speakers at the office, or allow the speakers only on your home Wi-Fi. Paired Bluetooth speakers and headphones show up even when they're not connected. The flash always shows.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                if !wifi.authorized {
+                    HStack {
+                        Text("macOS only shares Wi-Fi names with apps that have Location access.")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button(wifi.undetermined ? "Allow Access" : "Open Settings…") {
+                            if wifi.undetermined {
+                                wifi.requestAccess()
+                            } else {
+                                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices")!)
+                            }
+                        }
+                    }
+                }
+                LabeledContent("Current Wi-Fi", value: ssid ?? (wifi.authorized ? "Not connected" : "Unknown"))
+                LabeledContent("Never play sounds on") {
+                    Menu(settings.quietNetworks.isEmpty ? "No networks" : settings.quietNetworks.sorted().joined(separator: ", ")) {
+                        networkToggles(
+                            isOn: { settings.quietNetworks.contains($0) },
+                            set: { name, on in
+                                if on { settings.quietNetworks.insert(name) } else { settings.quietNetworks.remove(name) }
+                            })
+                    }
+                    .fixedSize()
+                }
+            } header: {
+                Text("Wi-Fi")
+            } footer: {
+                Text("E.g. keep every alert silent on the office Wi-Fi. Networks this Mac has joined before are listed even when you're not on them.")
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
         .frame(width: 520)
-        .frame(minHeight: 420)
+        .frame(minHeight: 700)
         .onAppear(perform: reloadOutputs)
         .task {
             let paired = await Task.detached { AudioOutputs.pairedBluetooth() }.value
@@ -69,6 +109,10 @@ struct SettingsView: View {
             settings.remember(paired.filter { settings.knownOutputs[$0.uid] == nil })
         }
         .onReceive(refresh) { _ in reloadOutputs() }
+        .onChange(of: wifi.authorized) { reloadOutputs() }
+        .onChange(of: settings.usesNetworkRules) {
+            if settings.usesNetworkRules && wifi.undetermined { wifi.requestAccess() }
+        }
     }
 
     /// Connected devices first, then remembered ones that aren't plugged in right now.
@@ -93,6 +137,44 @@ struct SettingsView: View {
         connected = AudioOutputs.all()
         current = AudioOutputs.current()
         settings.remember(connected)
+        ssid = wifi.currentSSID
+        settings.remember(networks: wifi.savedNetworks + [ssid].compactMap { $0 })
+    }
+
+    private var networkList: [String] {
+        settings.knownNetworks.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    @ViewBuilder
+    private func networkToggles(isOn: @escaping (String) -> Bool, set: @escaping (String, Bool) -> Void) -> some View {
+        if networkList.isEmpty {
+            Text(wifi.authorized ? "No Wi-Fi networks found" : "Allow Location access to list Wi-Fi networks")
+        }
+        ForEach(networkList, id: \.self) { name in
+            Toggle(name, isOn: Binding(get: { isOn(name) }, set: { set(name, $0) }))
+        }
+    }
+
+    /// "Anywhere" or "Only on <networks>" for one allowed output.
+    private func outputNetworkMenu(_ uid: String) -> some View {
+        let networks = settings.outputNetworks[uid] ?? []
+        return Menu(networks.isEmpty ? "Anywhere" : "Only on " + networks.joined(separator: ", ")) {
+            Toggle("Anywhere", isOn: Binding(
+                get: { networks.isEmpty },
+                set: { if $0 { settings.outputNetworks[uid] = nil } }))
+            Divider()
+            Text("Only on Wi-Fi")
+            networkToggles(
+                isOn: { networks.contains($0) },
+                set: { name, on in
+                    var list = settings.outputNetworks[uid] ?? []
+                    list.removeAll { $0 == name }
+                    if on { list.append(name) }
+                    settings.outputNetworks[uid] = list.isEmpty ? nil : list
+                })
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
     }
 }
 
