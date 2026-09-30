@@ -27,13 +27,14 @@ cask "meeting-flash" do
   desc "Menu bar app that flashes the screen red right before a calendar meeting starts"
   homepage "https://github.com/$REPO"
 
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "MeetingFlash.app"
 
   # The app is not notarized, so drop the quarantine flag to let Gatekeeper open it.
-  postflight do
-    system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{appdir}/MeetingFlash.app"]
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{appdir}}/MeetingFlash.app"],
+                          writable_paths: ["MeetingFlash.app"], writable_base: :appdir
   end
 
   uninstall quit: "com.frugoman.meetingflash"
