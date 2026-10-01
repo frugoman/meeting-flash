@@ -1,6 +1,8 @@
 # MeetingFlash
 
-A tiny macOS menu bar app that **flashes your screen red right before a meeting starts**, so you never miss one while heads-down.
+A tiny macOS menu bar app that **flashes your screen red right before a meeting starts**, so you never miss one while heads-down. · [Website](https://frugoman.github.io/meeting-flash/)
+
+![The screen pulses red with the meeting title and stays until a click, then in purple and over a photo](docs/assets/demo.gif)
 
 It reads the calendars in the macOS Calendar app, so it works with Exchange / Microsoft 365, Google, iCloud, or any account added under **System Settings → Internet Accounts**.
 
