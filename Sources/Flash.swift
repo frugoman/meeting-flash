@@ -16,7 +16,12 @@ final class Flasher {
     var onDismiss: (() -> Void)?
 
     func flash(title: String?, subtitle: String?, look: FlashLook, pulses: Int = 3) {
-        guard windows.isEmpty else { return } // already flashing
+        // A newer alert (say "at start" after "5 min before") replaces one that's still up, so it pulses again.
+        if !windows.isEmpty {
+            generation += 1
+            windows.forEach { $0.close() }
+            windows.removeAll()
+        }
 
         for screen in NSScreen.screens {
             let w = OverlayPanel(contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
