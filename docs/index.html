@@ -70,6 +70,19 @@
   .brand img { width: 28px; height: 28px; }
   nav .links a { font-size: 15px; color: var(--dim); text-decoration: none; }
   nav .links a:hover { color: var(--graphite); }
+  nav .links { display: flex; align-items: center; gap: 22px; }
+  .brand, nav .links a { white-space: nowrap; }
+
+  /* Buy Me a Coffee in its own yellow, flat like the page's other buttons. */
+  a.coffee { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; font-weight: 600; font-size: 15px; text-decoration: none;
+             background: #FFDD00; color: #1C1E22; border-radius: 7px; padding: 9px 16px; }
+  a.coffee:hover { background: #F5D400; }
+  a.coffee:active { transform: translateY(1px); }
+  nav .links a.coffee { color: #1C1E22; font-size: 14px; padding: 6px 12px; }
+  .support { margin: 0 0 56px; display: flex; align-items: center; justify-content: space-between; gap: 24px;
+             background: var(--window); border: 1px solid var(--rule); border-radius: 10px; padding: 24px 28px; }
+  .support h3 { font-size: 20px; }
+  .support p { color: var(--dim); }
 
   /* ---------- install box ---------- */
   .install {
@@ -269,6 +282,8 @@
     .settings .row { padding: 12px 16px; flex-wrap: wrap; }
     .settings .group-title { padding: 14px 16px 6px; }
     .cta { padding: 104px 0 72px; }
+    .support { flex-direction: column; align-items: flex-start; padding: 22px; }
+    nav .links .hide-sm { display: none; }
   }
   @media (max-width: 400px) {
     .looks { gap: 14px; }
@@ -286,7 +301,7 @@
 <div class="wrap">
   <nav aria-label="Site">
     <a class="brand" href="./"><img src="assets/icon.svg" alt="" width="28" height="28">MeetingFlash</a>
-    <div class="links"><a href="https://github.com/frugoman/meeting-flash">Source on GitHub</a></div>
+    <div class="links"><a class="hide-sm" href="https://github.com/frugoman/meeting-flash">Source on GitHub</a><a class="coffee" href="https://buymeacoffee.com/frugoman">☕ Buy me a coffee</a></div>
   </nav>
 
   <header class="hero" id="hero">
@@ -463,6 +478,14 @@
     </div>
     <p class="small dim">Then open MeetingFlash from Applications and allow calendar access. You can also <a href="https://github.com/frugoman/homebrew-tap/releases?q=meeting-flash">download the zip</a>; it isn't notarized, so the first launch needs a right-click and Open. Requires macOS 14 Sonoma or later.</p>
   </div>
+
+  <aside class="support">
+    <div>
+      <h3>MeetingFlash is free, and always will be.</h3>
+      <p>I build it in my spare time. If it's useful to you, a coffee keeps it going.</p>
+    </div>
+    <a class="coffee" href="https://buymeacoffee.com/frugoman">☕ Buy me a coffee</a>
+  </aside>
 
   <footer>
     <span>Made by <a href="https://github.com/frugoman">@frugoman</a>. <a href="https://github.com/frugoman/meeting-flash">Source on GitHub</a>, MIT licence.</span>

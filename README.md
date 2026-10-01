@@ -50,6 +50,10 @@ Needs Xcode or the Command Line Tools (Swift 5.9+).
 
 Builds a universal binary, publishes the zip as a release on, and updates the cask in, [frugoman/homebrew-tap](https://github.com/frugoman/homebrew-tap).
 
+## Support
+
+MeetingFlash is free and open source. If it's useful to you, you can [buy me a coffee](https://buymeacoffee.com/frugoman) ☕
+
 ## License
 
 MIT
