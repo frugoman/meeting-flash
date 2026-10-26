@@ -1,6 +1,6 @@
 # MeetingFlash
 
-A tiny macOS menu bar app that **flashes your screen red right before a meeting starts**, so you never miss one while heads-down. · [Website](https://frugoman.github.io/meeting-flash/)
+A tiny macOS menu bar app that **flashes your screen red right before a meeting starts**, so you never miss one while heads-down. · [Website](https://meetingflash.frusoft.dev/)
 
 ![The screen pulses red with the meeting title and stays until a click, then in purple and over a photo](docs/assets/demo.gif)
 
