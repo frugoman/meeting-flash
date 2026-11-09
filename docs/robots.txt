@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://meetingflash.frusoft.dev/sitemap.xml

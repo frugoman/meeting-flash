@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to get a full-screen meeting alert on Mac</title>
+<meta name="description" content="Mac Calendar notifications are easy to miss when you're focused. Why that happens, what to change in macOS, and how a full-screen alert fixes it.">
+<link rel="canonical" href="https://meetingflash.frusoft.dev/guides/full-screen-meeting-alert-mac/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to get a full-screen meeting alert on Mac">
+<meta property="og:description" content="Why Mac Calendar alerts get missed, what to change in macOS, and how to make a meeting impossible to overlook.">
+<meta property="og:image" content="https://meetingflash.frusoft.dev/assets/poster.jpg">
+<meta property="og:url" content="https://meetingflash.frusoft.dev/guides/full-screen-meeting-alert-mac/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How to get a full-screen meeting alert on Mac">
+<meta name="twitter:description" content="Why Mac Calendar alerts get missed, what to change in macOS, and how to make a meeting impossible to overlook.">
+<meta name="twitter:image" content="https://meetingflash.frusoft.dev/assets/poster.jpg">
+<link rel="icon" href="/assets/favicon.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"How to get a full-screen meeting alert on Mac","author":{"@type":"Person","name":"Nicolas Frugoni","url":"https://github.com/frugoman"},"mainEntityOfPage":"https://meetingflash.frusoft.dev/guides/full-screen-meeting-alert-mac/","image":"https://meetingflash.frusoft.dev/assets/poster.jpg"},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Does MeetingFlash work with Outlook or Google Calendar?","acceptedAnswer":{"@type":"Answer","text":"It reads the macOS Calendar app, so add your Exchange, Microsoft 365, Google or iCloud account under System Settings, Internet Accounts, and turn on Calendars."}},{"@type":"Question","name":"Is it free?","acceptedAnswer":{"@type":"Answer","text":"Yes. MeetingFlash is free and open source under the MIT licence."}},{"@type":"Question","name":"Can the alert be silent in the office?","acceptedAnswer":{"@type":"Answer","text":"Yes. Sound can be limited to chosen outputs (for example AirPods only) and muted on chosen Wi-Fi networks."}}]}]}</script>
+<style>
+:root{--bg:#fff;--fg:#1C1E22;--dim:#5A5F68;--sig:#E02D22;--rule:#D5D8DE;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#141619;--fg:#F0F1F3;--dim:#9AA0AA;--sig:#FF5A50;--rule:#2C3037}}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.65 -apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif}
+main{max-width:680px;margin:0 auto;padding:32px 20px 64px}
+a{color:var(--sig)}h1{font-size:2rem;line-height:1.2}h2{margin-top:2em}
+.dim{color:var(--dim)}code{background:rgba(127,127,127,.15);padding:2px 6px;border-radius:5px;font-size:.9em}
+.cta{border:1px solid var(--rule);border-radius:12px;padding:16px 20px;margin:28px 0}
+img{max-width:100%;height:auto;border-radius:10px}
+</style>
+</head>
+<body>
+<main>
+<p><a href="/">← MeetingFlash</a></p>
+<h1>How to get a full-screen meeting alert on Mac</h1>
+<p class="dim">By Nicolas Frugoni, who builds MeetingFlash.</p>
+
+<p>If you work with headphones on and a document full-screen, the little banner macOS Calendar shows in the corner is easy to miss. It slides in, sits for a few seconds and leaves. This guide covers why that happens, what you can change for free in macOS, and when a full-screen alert is the better fix.</p>
+
+<h2>Why Calendar alerts get missed</h2>
+<ul>
+<li><strong>Banners disappear.</strong> Unless you set the style to <em>Alerts</em> in System Settings, Notifications, Calendar, a banner dismisses itself.</li>
+<li><strong>Focus modes hide them.</strong> Do Not Disturb or a work Focus can suppress Calendar notifications entirely.</li>
+<li><strong>They're small and quiet.</strong> A corner banner doesn't compete with the thing you're concentrating on.</li>
+</ul>
+
+<h2>Step 1: make macOS notifications harder to ignore</h2>
+<ol>
+<li>Open <strong>System Settings, Notifications, Calendar</strong>.</li>
+<li>Set the style to <strong>Alerts</strong> so the notification stays until you act on it.</li>
+<li>Turn on <strong>Play sound for notifications</strong>.</li>
+<li>In your Focus settings, allow Calendar to notify you during work hours.</li>
+<li>In the Calendar app, set default alerts to a few minutes before events.</li>
+</ol>
+<p>This is a real improvement and costs nothing. For many people it's enough.</p>
+
+<h2>Step 2: use an alert that takes over the screen</h2>
+<p>If you still miss meetings, the problem is attention, not settings. A full-screen alert covers every display, so you can't miss it, and stays until you click or press a key.</p>
+<p><a href="/">MeetingFlash</a> is a free, open-source menu bar app that does this:</p>
+<ul>
+<li>Flashes every display red right before a meeting, showing the meeting title, until you click or press a key.</li>
+<li>Lets you change the colour, or use a photo instead.</li>
+<li>Supports several alerts per meeting, for example a soft sound 5 minutes before and the flash at the start.</li>
+<li>Skips all-day, cancelled and declined events.</li>
+<li>Lists upcoming meetings with a one-click join for Teams, Zoom, Meet and Webex.</li>
+</ul>
+<img src="/assets/poster.jpg" alt="MeetingFlash flashing a Mac screen red with the meeting title" width="1920" height="1200" loading="lazy">
+
+<div class="cta">
+<strong>Install</strong><br>
+<code>brew install --cask frugoman/tap/meeting-flash</code><br>
+<span class="dim">Requires macOS 14 or later. Or <a href="https://github.com/frugoman/homebrew-tap/releases?q=meeting-flash">download the zip</a>.</span>
+</div>
+
+<h2>Works with Outlook, Google and iCloud</h2>
+<p>MeetingFlash reads the macOS Calendar app, not each service separately. Add your Exchange, Microsoft 365, Google or iCloud account under <strong>System Settings, Internet Accounts</strong> and turn on Calendars; its events then show up. It can't see the Outlook app's own private calendar store, so if you only use Outlook, add the account to macOS too.</p>
+
+<h2>Keep it from being annoying</h2>
+<ul>
+<li><strong>Sound only where it's OK.</strong> Restrict sound to chosen outputs (say your AirPods) so the laptop speakers stay silent in the office.</li>
+<li><strong>Wi-Fi rules.</strong> Mute on named networks, such as the office. Reading the Wi-Fi name needs Location permission, which macOS requires.</li>
+<li><strong>Pick calendars.</strong> Watch only the ones that matter.</li>
+</ul>
+
+<h2>FAQ</h2>
+<h3>Does it work with Outlook or Google Calendar?</h3>
+<p>Yes, through the macOS Calendar app (see above).</p>
+<h3>Is it free?</h3>
+<p>Yes, free and MIT licensed. The <a href="https://github.com/frugoman/meeting-flash">source is on GitHub</a>.</p>
+<h3>Does it send my calendar anywhere?</h3>
+<p>No. It reads your calendar on your Mac and doesn't need an account.</p>
+<p class="dim"><a href="/">MeetingFlash home</a></p>
+</main>
+</body>
+</html>
