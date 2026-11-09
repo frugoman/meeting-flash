@@ -21,3 +21,6 @@ Candidate guides, ranked:
 6. Mute meeting alerts on office Wi-Fi / only on AirPods
 Skip: anything needing volume claims. Re-rank with `gsc-report.mjs opps` after ~4 weeks.
 Unverified in the guide: whether alerts appear over Focus, full-screen apps or screen sharing; test and add before claiming.
+
+## Live (2026-11-09)
+Pushed to main as cbe306d; live audit of https://meetingflash.frusoft.dev: 18/21. Home, guide, sitemap.xml, robots.txt all 200.
