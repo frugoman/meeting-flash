@@ -24,3 +24,6 @@ Unverified in the guide: whether alerts appear over Focus, full-screen apps or s
 
 ## Live (2026-11-09)
 Pushed to main as cbe306d; live audit of https://meetingflash.frusoft.dev: 18/21. Home, guide, sitemap.xml, robots.txt all 200.
+
+## Analytics
+GA4 `G-4VP0CDEM0D` via `docs/analytics.js` (copy of the playbook's site-analytics.js, unchanged), on the home page and the guide. Consent default denied; events: `page_view`, `cta_click` (download links tagged `data-cta="download"`), `guide_read`. No App Store link (Mac app), so no campaign tokens; JSON-LD downloadUrl left untagged. Privacy paragraph added to the home page. No CSP on this site.
